@@ -1816,6 +1816,7 @@ import {
   normalizeRegistrationEmailSuffixDomains,
   parseRegistrationEmailSuffixWhitelistInput
 } from '@/utils/registrationEmailPolicy'
+import { withBasePath } from '@/utils/basePath'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -2055,7 +2056,7 @@ const linuxdoRedirectUrlSuggestion = computed(() => {
   if (typeof window === 'undefined') return ''
   const origin =
     window.location.origin || `${window.location.protocol}//${window.location.host}`
-  return `${origin}/api/v1/auth/oauth/linuxdo/callback`
+  return `${origin}${withBasePath('api/v1/auth/oauth/linuxdo/callback')}`
 })
 
 async function setAndCopyLinuxdoRedirectUrl() {

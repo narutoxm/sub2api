@@ -386,6 +386,7 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore, useAppStore } from '@/stores'
 import { performUpdate, restartService } from '@/api/admin/system'
 import Icon from '@/components/icons/Icon.vue'
+import { withBasePath } from '@/utils/basePath'
 
 const { t } = useI18n()
 
@@ -491,7 +492,7 @@ async function checkServiceAndReload() {
 
   for (let i = 0; i < maxRetries; i++) {
     try {
-      const response = await fetch('/health', {
+      const response = await fetch(withBasePath('health'), {
         method: 'GET',
         cache: 'no-cache'
       })
