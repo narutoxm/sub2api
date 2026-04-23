@@ -431,6 +431,31 @@ func TestApplyCodexOAuthTransform_StringInputWithToolsField(t *testing.T) {
 	require.Len(t, input, 1)
 }
 
+func TestApplyCodexOAuthTransform_NormalizesFastServiceTierToPriority(t *testing.T) {
+	reqBody := map[string]any{
+		"model":        "gpt-5.4",
+		"service_tier": "fast",
+		"input":        "hello",
+	}
+
+	result := applyCodexOAuthTransform(reqBody, false, false)
+	require.True(t, result.Modified)
+	require.Equal(t, "priority", reqBody["service_tier"])
+}
+
+func TestApplyCodexOAuthTransform_RemovesUnsupportedServiceTier(t *testing.T) {
+	reqBody := map[string]any{
+		"model":        "gpt-5.4",
+		"service_tier": "default",
+		"input":        "hello",
+	}
+
+	result := applyCodexOAuthTransform(reqBody, false, false)
+	require.True(t, result.Modified)
+	_, exists := reqBody["service_tier"]
+	require.False(t, exists)
+}
+
 func TestExtractSystemMessagesFromInput(t *testing.T) {
 	t.Run("no system messages", func(t *testing.T) {
 		reqBody := map[string]any{
