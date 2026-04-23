@@ -43,6 +43,7 @@
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { resolveAffiliateReferralCode, storeOAuthAffiliateCode } from '@/utils/oauthAffiliate'
+import { getBasePath, resolveHTTPOrBasePath, withBasePath } from '@/utils/basePath'
 
 const props = withDefaults(defineProps<{
   disabled?: boolean
@@ -56,11 +57,16 @@ const route = useRoute()
 const { t } = useI18n()
 
 function startLogin(): void {
-  const redirectTo = (route.query.redirect as string) || '/dashboard'
+  const rawRedirect = String(route.query.redirect ?? '').trim()
+  const basePath = getBasePath()
+  const redirectTo = rawRedirect
+    ? (rawRedirect.startsWith(basePath) ? rawRedirect : withBasePath(rawRedirect))
+    : withBasePath('dashboard')
+
   storeOAuthAffiliateCode(resolveAffiliateReferralCode(props.affCode, route.query.aff, route.query.aff_code))
-  const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api/v1'
-  const normalized = apiBase.replace(/\/$/, '')
-  const startURL = `${normalized}/auth/oauth/linuxdo/start?redirect=${encodeURIComponent(redirectTo)}`
+  const apiBase = resolveHTTPOrBasePath(import.meta.env.VITE_API_BASE_URL as string | undefined, 'api/v1')
+    .replace(/\/$/, '')
+  const startURL = `${apiBase}/auth/oauth/linuxdo/start?redirect=${encodeURIComponent(redirectTo)}`
   window.location.href = startURL
 }
 </script>

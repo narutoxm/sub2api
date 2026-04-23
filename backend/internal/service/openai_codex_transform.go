@@ -93,6 +93,23 @@ func applyCodexOAuthTransform(reqBody map[string]any, isCodexCLI bool, isCompact
 		}
 	}
 
+	if rawServiceTier, ok := reqBody["service_tier"]; ok {
+		switch value := rawServiceTier.(type) {
+		case string:
+			normalized := normalizeOpenAIServiceTier(value)
+			if normalized == nil {
+				delete(reqBody, "service_tier")
+				result.Modified = true
+			} else if strings.ToLower(strings.TrimSpace(value)) != *normalized {
+				reqBody["service_tier"] = *normalized
+				result.Modified = true
+			}
+		default:
+			delete(reqBody, "service_tier")
+			result.Modified = true
+		}
+	}
+
 	// Strip parameters unsupported by codex models via the Responses API.
 	for _, key := range []string{
 		"max_output_tokens",

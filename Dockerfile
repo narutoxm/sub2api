@@ -18,6 +18,9 @@ ARG GOSUMDB=sum.golang.google.cn
 # -----------------------------------------------------------------------------
 FROM ${NODE_IMAGE} AS frontend-builder
 
+ARG VITE_BASE=/
+ENV VITE_BASE=${VITE_BASE}
+
 WORKDIR /app/frontend
 
 # Install pnpm
