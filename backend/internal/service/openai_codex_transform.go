@@ -150,6 +150,23 @@ func applyCodexOAuthTransformWithOptions(reqBody map[string]any, opts codexOAuth
 		}
 	}
 
+	if rawServiceTier, ok := reqBody["service_tier"]; ok {
+		switch value := rawServiceTier.(type) {
+		case string:
+			normalized := normalizeOpenAIServiceTier(value)
+			if normalized == nil {
+				delete(reqBody, "service_tier")
+				result.Modified = true
+			} else if strings.ToLower(strings.TrimSpace(value)) != *normalized {
+				reqBody["service_tier"] = *normalized
+				result.Modified = true
+			}
+		default:
+			delete(reqBody, "service_tier")
+			result.Modified = true
+		}
+	}
+
 	// Strip parameters unsupported by ChatGPT internal Codex endpoint.
 	for _, key := range openAICodexOAuthUnsupportedFields {
 		if _, ok := reqBody[key]; ok {

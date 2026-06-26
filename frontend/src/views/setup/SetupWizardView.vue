@@ -496,6 +496,7 @@ import { testDatabase, testRedis, install, type InstallRequest } from '@/api/set
 import Select from '@/components/common/Select.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { withBasePath } from '@/utils/basePath'
 
 const { t } = useI18n()
 
@@ -644,7 +645,7 @@ async function waitForServiceRestart() {
     try {
       // Use setup status endpoint as it tells us the real mode
       // Service might return 404 or connection refused while restarting
-      const response = await fetch('/setup/status', {
+      const response = await fetch(withBasePath('setup/status'), {
         method: 'GET',
         cache: 'no-store'
       })
@@ -656,7 +657,7 @@ async function waitForServiceRestart() {
           serviceReady.value = true
           // Redirect to login page after a short delay
           setTimeout(() => {
-            window.location.href = '/login'
+            window.location.href = withBasePath('login')
           }, 1500)
           return
         }

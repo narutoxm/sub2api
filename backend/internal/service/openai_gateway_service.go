@@ -2750,6 +2750,22 @@ func (s *OpenAIGatewayService) Forward(ctx context.Context, c *gin.Context, acco
 		}
 	}
 
+	// Compatibility: some clients use "fast" to mean "priority". We only normalize this legacy value
+	// to avoid breaking clients that send other service_tier values (e.g. "auto"/"default") that may
+	// still work with some upstreams.
+	if serviceTier, ok := reqBody["service_tier"].(string); ok {
+		tier := strings.ToLower(strings.TrimSpace(serviceTier))
+		if tier == "fast" {
+			reqBody["service_tier"] = "priority"
+			bodyModified = true
+			markPatchSet("service_tier", "priority")
+		} else if tier == "" {
+			delete(reqBody, "service_tier")
+			bodyModified = true
+			markPatchDelete("service_tier")
+		}
+	}
+
 	if account.Type == AccountTypeOAuth {
 		decoded, decodeErr := ensureReqBody()
 		if decodeErr != nil {
@@ -5566,6 +5582,19 @@ func (s *OpenAIGatewayService) handleSSEToJSON(resp *http.Response, c *gin.Conte
 			}
 		}
 		body = finalResponse
+		// ChatGPT Codex SSE protocol sends the actual output items via separate events
+		// (e.g. response.output_item.done). The terminal response.completed event usually has
+		// response.output = []. For non-streaming clients we reconstruct output from SSE so the
+		// returned JSON matches OpenAI Responses schema expectations.
+		if outputRaw, extracted := extractOpenAIOutputItemsFromSSE(bodyText); extracted {
+			out := gjson.GetBytes(body, "output")
+			shouldPatchOutput := !out.Exists() || (out.IsArray() && len(out.Array()) == 0)
+			if shouldPatchOutput {
+				if patched, err := sjson.SetRawBytes(body, "output", outputRaw); err == nil {
+					body = patched
+				}
+			}
+		}
 		if originalModel != mappedModel {
 			body = s.replaceModelInResponseBody(body, mappedModel, originalModel)
 		}
@@ -5605,6 +5634,47 @@ func (s *OpenAIGatewayService) handleSSEToJSON(resp *http.Response, c *gin.Conte
 		imageCount:       countOpenAIImageOutputsFromSSEBody(bodyText),
 		imageOutputSizes: collectOpenAIImageOutputSizesFromSSEBody(bodyText),
 	}, nil
+}
+
+func extractOpenAIOutputItemsFromSSE(body string) ([]byte, bool) {
+	lines := strings.Split(body, "\n")
+	items := make(map[int64]string)
+	for _, line := range lines {
+		data, ok := extractOpenAISSEDataLine(line)
+		if !ok || data == "" || data == "[DONE]" {
+			continue
+		}
+		if strings.TrimSpace(gjson.Get(data, "type").String()) != "response.output_item.done" {
+			continue
+		}
+		idx := gjson.Get(data, "output_index").Int()
+		item := gjson.Get(data, "item")
+		if !item.Exists() || item.Type != gjson.JSON || item.Raw == "" {
+			continue
+		}
+		items[idx] = item.Raw
+	}
+
+	if len(items) == 0 {
+		return nil, false
+	}
+
+	indices := make([]int64, 0, len(items))
+	for idx := range items {
+		indices = append(indices, idx)
+	}
+	sort.Slice(indices, func(i, j int) bool { return indices[i] < indices[j] })
+
+	var b strings.Builder
+	b.WriteByte('[')
+	for i, idx := range indices {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteString(items[idx])
+	}
+	b.WriteByte(']')
+	return []byte(b.String()), true
 }
 
 func extractOpenAISSETerminalEvent(body string) (string, []byte, bool) {
@@ -6912,6 +6982,7 @@ func extractOpenAIRequestMetaFromBody(body []byte) (model string, stream bool, p
 // normalizeOpenAIPassthroughOAuthBody 将透传 OAuth 请求体收敛为旧链路关键行为：
 // 1) 删除 ChatGPT internal API 不支持的顶层 Responses 参数
 // 2) store=false 3) 非 compact 保持 stream=true；compact 强制 stream=false
+// 3) service_tier: fast -> priority；删除 OAuth Codex 不支持的值
 func normalizeOpenAIPassthroughOAuthBody(body []byte, compact bool) ([]byte, bool, error) {
 	if len(body) == 0 {
 		return body, false, nil
@@ -6962,6 +7033,25 @@ func normalizeOpenAIPassthroughOAuthBody(body []byte, compact bool) ([]byte, boo
 			next, err := sjson.SetBytes(normalized, "stream", true)
 			if err != nil {
 				return body, false, fmt.Errorf("normalize passthrough body stream=true: %w", err)
+			}
+			normalized = next
+			changed = true
+		}
+	}
+
+	if serviceTier := gjson.GetBytes(normalized, "service_tier"); serviceTier.Exists() {
+		normalizedTier := normalizeOpenAIServiceTier(serviceTier.String())
+		if normalizedTier == nil || serviceTier.Type != gjson.String {
+			next, err := sjson.DeleteBytes(normalized, "service_tier")
+			if err != nil {
+				return body, false, fmt.Errorf("normalize passthrough body delete service_tier: %w", err)
+			}
+			normalized = next
+			changed = true
+		} else if strings.ToLower(strings.TrimSpace(serviceTier.String())) != *normalizedTier {
+			next, err := sjson.SetBytes(normalized, "service_tier", *normalizedTier)
+			if err != nil {
+				return body, false, fmt.Errorf("normalize passthrough body service_tier=%s: %w", *normalizedTier, err)
 			}
 			normalized = next
 			changed = true

@@ -17,6 +17,8 @@ ARG GOSUMDB=sum.golang.google.cn
 # -----------------------------------------------------------------------------
 FROM ${NODE_IMAGE} AS frontend-builder
 
+ARG VITE_BASE=/
+
 WORKDIR /app/frontend
 
 # Install pnpm
@@ -33,7 +35,7 @@ RUN pnpm install --frozen-lockfile
 # Copy only that subtree to keep the build dependency minimal.
 COPY frontend/ ./
 COPY docs/legal/ /app/docs/legal/
-RUN pnpm run build
+RUN pnpm run build -- --base ${VITE_BASE}
 
 # -----------------------------------------------------------------------------
 # Stage 2: Backend Builder

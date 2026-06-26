@@ -6,6 +6,7 @@
 
 import { apiClient } from '../client'
 import type { PaginatedResponse } from '@/types'
+import { withBasePath } from '@/utils/basePath'
 
 export type OpsQueryMode = 'auto' | 'raw' | 'preagg'
 
@@ -595,7 +596,8 @@ export function subscribeQPS(onMessage: (data: any) => void, options: SubscribeQ
     setStatus(hasConnectedOnce ? 'reconnecting' : 'connecting')
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsBaseUrl = options.wsBaseUrl || import.meta.env.VITE_WS_BASE_URL || window.location.host
-    const wsURL = new URL(`${protocol}//${wsBaseUrl}/api/v1/admin/ops/ws/qps`)
+    const wsPath = withBasePath('api/v1/admin/ops/ws/qps')
+    const wsURL = new URL(`${protocol}//${wsBaseUrl}${wsPath}`)
 
     // Do NOT put admin JWT in the URL query string (it can leak via access logs, proxies, etc).
     // Browsers cannot set Authorization headers for WebSockets, so we pass the token via

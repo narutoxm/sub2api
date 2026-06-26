@@ -7250,6 +7250,7 @@ import {
   defaultFingerprintSignalRows,
   type FingerprintSignalRow,
 } from "./codexFingerprintSignals";
+import { withBasePath } from "@/utils/basePath";
 
 const { t, locale } = useI18n();
 const appStore = useAppStore();
@@ -8447,7 +8448,7 @@ const linuxdoRedirectUrlSuggestion = computed(() => {
   const origin =
     window.location.origin ||
     `${window.location.protocol}//${window.location.host}`;
-  return `${origin}/api/v1/auth/oauth/linuxdo/callback`;
+  return `${origin}${withBasePath("api/v1/auth/oauth/linuxdo/callback")}`;
 });
 
 async function setAndCopyLinuxdoRedirectUrl() {
@@ -8502,7 +8503,7 @@ const wechatRedirectUrlSuggestion = computed(() => {
   const origin =
     window.location.origin ||
     `${window.location.protocol}//${window.location.host}`;
-  return `${origin}/api/v1/auth/oauth/wechat/callback`;
+  return `${origin}${withBasePath("api/v1/auth/oauth/wechat/callback")}`;
 });
 
 function syncWeChatConnectMode(preferredMode?: WeChatConnectMode) {
@@ -8571,7 +8572,7 @@ const oidcRedirectUrlSuggestion = computed(() => {
   const origin =
     window.location.origin ||
     `${window.location.protocol}//${window.location.host}`;
-  return `${origin}/api/v1/auth/oauth/oidc/callback`;
+  return `${origin}${withBasePath("api/v1/auth/oauth/oidc/callback")}`;
 });
 
 async function setAndCopyOIDCRedirectUrl() {
