@@ -1,0 +1,64 @@
+name: Server GHCR Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'GHCR tag to publish'
+        required: true
+        default: 'sub2api-latest'
+        type: string
+      vite_base:
+        description: 'Frontend base path baked into the image'
+        required: true
+        default: '/sub2api/'
+        type: string
+      platforms:
+        description: 'Target platforms'
+        required: true
+        default: 'linux/arm64'
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set lowercase owner
+        id: owner
+        run: echo "value=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push server image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ inputs.platforms }}
+          push: true
+          build-args: |
+            VITE_BASE=${{ inputs.vite_base }}
+          tags: |
+            ghcr.io/${{ steps.owner.outputs.value }}/sub2api-server:${{ inputs.image_tag }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.description=Sub2API server image built with VITE_BASE=${{ inputs.vite_base }}

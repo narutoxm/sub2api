@@ -9,18 +9,17 @@
 # - Redis reachable as host "redis" (6379)
 #
 # Usage:
-#   sudo docker compose -f deploy/docker-compose.external.yml --env-file deploy/.env up -d --build
+#   sudo docker compose -f deploy/docker-compose.external.yml --env-file deploy/.env pull sub2api
+#   sudo docker compose -f deploy/docker-compose.external.yml --env-file deploy/.env up -d --no-deps sub2api
 # =============================================================================
 
 services:
   sub2api:
-    build:
-      context: ..
-      dockerfile: Dockerfile
-      args:
-        # Deploy UI under https://xumin.fun/sub2api/
-        VITE_BASE: /sub2api/
-    image: sub2api-local:latest
+    # This deployment runs behind https://xumin.fun/sub2api/, so the image must
+    # be built with VITE_BASE=/sub2api/. Build it in GitHub Actions, not on the
+    # shared server. See .github/workflows/server-ghcr.yml.
+    image: ${SUB2API_IMAGE:-ghcr.io/narutoxm/sub2api-server:sub2api-latest}
+    pull_policy: always
     container_name: sub2api
     restart: unless-stopped
     ulimits:
