@@ -15,9 +15,11 @@ This directory contains files for deploying Sub2API on Linux servers.
 |------|-------------|
 | `docker-compose.yml` | Docker Compose configuration (named volumes) |
 | `docker-compose.local.yml` | Docker Compose configuration (local directories, easy migration) |
+| `docker-compose.external.yml` | Sub2API-only deployment for existing PostgreSQL/Redis; uses GHCR image only |
 | `docker-deploy.sh` | **One-click Docker deployment script (recommended)** |
 | `.env.example` | Docker environment variables template |
 | `DOCKER.md` | Docker Hub documentation |
+| `.github/workflows/server-ghcr.yml` | Builds the server-specific GHCR image with the required frontend base path |
 | `install.sh` | One-click binary installation script |
 | `install-datamanagementd.sh` | datamanagementd 一键安装脚本 |
 | `sub2api.service` | Systemd service unit file |
@@ -147,6 +149,80 @@ SELECT
   (SELECT COUNT(*) FROM old_pairs)           AS old_pair_count,
   (SELECT COUNT(*) FROM user_allowed_groups) AS new_pair_count;
 ```
+
+### External PostgreSQL/Redis Upgrade (GHCR Only)
+
+Use this flow for servers that share PostgreSQL, Redis, or Nginx with other
+services. The server must not build images locally; all image builds must happen
+in GitHub Actions and be pushed to GHCR first.
+
+Do **not** run these commands on the server:
+
+```bash
+docker compose -f deploy/docker-compose.external.yml build sub2api
+docker compose -f deploy/docker-compose.external.yml up -d --build
+docker build .
+```
+
+The external compose file must use a prebuilt image:
+
+```yaml
+image: ${SUB2API_IMAGE:-ghcr.io/narutoxm/sub2api-server:sub2api-latest}
+pull_policy: always
+```
+
+Build the image in GitHub Actions:
+
+1. Push the code to GitHub.
+2. Open **Actions** -> **Server GHCR Image**.
+3. Run the workflow with:
+   - `image_tag`: a versioned tag such as `v0.1.139-sub2api`, or `sub2api-latest`
+   - `vite_base`: `/sub2api/`
+   - `platforms`: `linux/arm64` for this server
+4. Wait until GHCR shows the image:
+   `ghcr.io/narutoxm/sub2api-server:<image_tag>`.
+
+Before upgrading, back up only the `sub2api` database:
+
+```bash
+backup_dir=/home/ubuntu/backups/sub2api
+mkdir -p "$backup_dir"
+ts=$(date -u +%Y%m%dT%H%M%SZ)
+backup_file="$backup_dir/sub2api_${ts}.dump"
+
+docker exec sub2api sh -lc \
+  'PGPASSWORD="$DATABASE_PASSWORD" pg_dump -h "$DATABASE_HOST" -p "$DATABASE_PORT" -U "$DATABASE_USER" -d "$DATABASE_DBNAME" -Fc --no-owner --no-acl' \
+  > "$backup_file"
+
+sha256sum "$backup_file" > "$backup_file.sha256"
+sha256sum -c "$backup_file.sha256"
+docker exec -i claude-code-hub-postgres-1 pg_restore -l < "$backup_file" | head -30
+```
+
+Upgrade by pulling the GHCR image and recreating only the Sub2API container:
+
+```bash
+cd /home/ubuntu/github/sub2api
+
+# Optional: pin a specific image tag in deploy/.env.
+# SUB2API_IMAGE=ghcr.io/narutoxm/sub2api-server:v0.1.139-sub2api
+
+docker compose -f deploy/docker-compose.external.yml --env-file deploy/.env pull sub2api
+docker compose -f deploy/docker-compose.external.yml --env-file deploy/.env up -d --no-deps sub2api
+```
+
+Verify the upgrade:
+
+```bash
+docker exec sub2api /app/sub2api --version
+curl -fsS http://127.0.0.1:8180/health
+curl -fsS http://127.0.0.1:8180/api/v1/settings/public | head -c 300
+docker logs --since=3m sub2api 2>&1 | grep -Ei 'error|panic|fatal|failed|migration' || true
+docker ps --format '{{.Names}} {{.Image}} {{.Status}}' | grep -E '^(sub2api|claude-code-hub-postgres-1|claude-code-hub-redis-1|claude-code-hub-nginx-1)'
+```
+
+Only the `sub2api` container should be recreated. PostgreSQL, Redis, and Nginx
+must remain running and must not be restarted as part of this upgrade flow.
 
 ### datamanagementd（数据管理）联动
 
