@@ -2,16 +2,11 @@
  * Setup API endpoints
  */
 import axios from 'axios'
-import { resolveHTTPOrBasePath } from '@/utils/basePath'
+import { buildGatewayUrl } from './url'
 
 // Create a separate client for setup endpoints (not under /api/v1)
-const SETUP_BASE_URL = resolveHTTPOrBasePath(
-  (import.meta.env as unknown as { VITE_SETUP_BASE_URL?: string }).VITE_SETUP_BASE_URL,
-  'setup'
-).replace(/\/$/, '')
-
 const setupClient = axios.create({
-  baseURL: SETUP_BASE_URL,
+  baseURL: buildGatewayUrl('/setup').replace(/\/+$/, ''),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'

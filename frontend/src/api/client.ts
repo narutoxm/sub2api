@@ -6,14 +6,13 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import type { ApiResponse } from '@/types'
 import { getLocale } from '@/i18n'
-import { resolveHTTPOrBasePath, withBasePath } from '@/utils/basePath'
+import { buildGatewayUrl, getAPIBaseURL } from './url'
+export { buildApiUrl, buildGatewayUrl } from './url'
 
 // ==================== Axios Instance Configuration ====================
 
-const API_BASE_URL = resolveHTTPOrBasePath(import.meta.env.VITE_API_BASE_URL, 'api/v1').replace(/\/$/, '')
-
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getAPIBaseURL(),
   withCredentials: true,
   timeout: 30000,
   headers: {
@@ -137,9 +136,9 @@ apiClient.interceptors.response.use(
           // ignore event failures
         }
 
-        const adminOpsPath = withBasePath('admin/ops')
+        const adminOpsPath = buildGatewayUrl('/admin/ops').replace(window.location.origin, '')
         if (window.location.pathname.startsWith(adminOpsPath)) {
-          window.location.href = withBasePath('admin/settings')
+          window.location.href = buildGatewayUrl('/admin/settings')
         }
 
         return Promise.reject({
@@ -205,7 +204,7 @@ apiClient.interceptors.response.use(
           try {
             // Call refresh endpoint directly to avoid circular dependency
             const refreshResponse = await axios.post(
-              `${API_BASE_URL}/auth/refresh`,
+              `${getAPIBaseURL()}/auth/refresh`,
               { refresh_token: refreshToken },
               { headers: { 'Content-Type': 'application/json' } }
             )
@@ -250,9 +249,9 @@ apiClient.interceptors.response.use(
             localStorage.removeItem('token_expires_at')
             sessionStorage.setItem('auth_expired', '1')
 
-            const loginPath = withBasePath('login')
+            const loginPath = buildGatewayUrl('/login').replace(window.location.origin, '')
             if (!window.location.pathname.startsWith(loginPath)) {
-              window.location.href = loginPath
+              window.location.href = buildGatewayUrl('/login')
             }
 
             return Promise.reject({
@@ -282,9 +281,9 @@ apiClient.interceptors.response.use(
           sessionStorage.setItem('auth_expired', '1')
         }
         // Only redirect if not already on login page
-        const loginPath = withBasePath('login')
+        const loginPath = buildGatewayUrl('/login').replace(window.location.origin, '')
         if (!window.location.pathname.startsWith(loginPath)) {
-          window.location.href = loginPath
+          window.location.href = buildGatewayUrl('/login')
         }
       }
 
