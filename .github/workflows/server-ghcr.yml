@@ -3,7 +3,7 @@ name: Server GHCR Image
 on:
   push:
     branches:
-      - upgrade/v0.1.146
+      - upgrade/v0.1.151
   workflow_dispatch:
     inputs:
       image_tag:
@@ -51,7 +51,7 @@ jobs:
             echo "vite_base=${{ inputs.vite_base }}" >> "$GITHUB_OUTPUT"
             echo "platforms=${{ inputs.platforms }}" >> "$GITHUB_OUTPUT"
           else
-            echo "image_tag=sub2api-v0.1.146" >> "$GITHUB_OUTPUT"
+            echo "image_tag=sub2api-v0.1.151" >> "$GITHUB_OUTPUT"
             echo "vite_base=/sub2api/" >> "$GITHUB_OUTPUT"
             echo "platforms=linux/arm64" >> "$GITHUB_OUTPUT"
           fi
@@ -72,6 +72,8 @@ jobs:
           push: true
           build-args: |
             VITE_BASE=${{ steps.build_inputs.outputs.vite_base }}
+            VERSION=0.1.151
+            COMMIT=${{ github.sha }}
           tags: |
             ghcr.io/${{ steps.owner.outputs.value }}/sub2api-server:${{ steps.build_inputs.outputs.image_tag }}
             ghcr.io/${{ steps.owner.outputs.value }}/sub2api-server:sub2api-latest
