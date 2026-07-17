@@ -203,6 +203,12 @@ Build the image in GitHub Actions:
 4. Wait until GHCR shows the image:
    `ghcr.io/narutoxm/sub2api-server:<image_tag>`.
 
+The Dockerfile intentionally builds the frontend and Go builder stages on
+`$BUILDPLATFORM`, then cross-compiles the final binary for `$TARGETOS/$TARGETARCH`.
+Keep this in place. Without it, a `linux/arm64` GHCR build on GitHub's x86
+runner executes the frontend and Go build through QEMU, which has previously
+stalled for a long time around `pnpm run build` and `go build`.
+
 Before upgrading, back up only the `sub2api` database:
 
 ```bash
