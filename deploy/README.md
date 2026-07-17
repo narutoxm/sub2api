@@ -1,12 +1,13 @@
 # Sub2API Deployment Files
 
-This directory contains files for deploying Sub2API on Linux servers.
+This directory contains files for deploying Sub2API on Linux servers and Apple-silicon Macs.
 
 ## Deployment Methods
 
 | Method | Best For | Setup Wizard |
 |--------|----------|--------------|
 | **Docker Compose** | Quick setup, all-in-one | Not needed (auto-setup) |
+| **Apple container** | Native local stack on macOS 26 | Not needed (auto-setup) |
 | **Binary Install** | Production servers, systemd | Web-based wizard |
 
 ## Files
@@ -17,7 +18,9 @@ This directory contains files for deploying Sub2API on Linux servers.
 | `docker-compose.local.yml` | Docker Compose configuration (local directories, easy migration) |
 | `docker-compose.external.yml` | Sub2API-only deployment for existing PostgreSQL/Redis; uses GHCR image only |
 | `docker-deploy.sh` | **One-click Docker deployment script (recommended)** |
-| `.env.example` | Docker environment variables template |
+| `apple-container.sh` | Native Apple `container` lifecycle script |
+| `APPLE_CONTAINER.md` | Apple `container` deployment and operations guide |
+| `.env.example` | Container environment variables template |
 | `DOCKER.md` | Docker Hub documentation |
 | `.github/workflows/server-ghcr.yml` | Builds the server-specific GHCR image with the required frontend base path |
 | `install.sh` | One-click binary installation script |
@@ -26,6 +29,23 @@ This directory contains files for deploying Sub2API on Linux servers.
 | `sub2api-datamanagementd.service` | datamanagementd systemd service unit file |
 | `DATAMANAGEMENTD_CN.md` | datamanagementd 部署与联动说明（中文） |
 | `config.example.yaml` | Example configuration file |
+
+---
+
+## Apple container Deployment
+
+Apple-silicon Macs running macOS 26 can run the complete Sub2API, PostgreSQL, and Redis stack with Apple `container` 1.1.0 or newer:
+
+```bash
+./apple-container.sh init
+./apple-container.sh up
+./apple-container.sh status
+./apple-container.sh logs app -f
+```
+
+The script uses Apple named volumes, starts dependencies in order, and performs live readiness checks. It does not provide a continuous restart supervisor; run `./apple-container.sh up` after a host reboot. Docker Compose remains the recommended production deployment path.
+
+See [APPLE_CONTAINER.md](./APPLE_CONTAINER.md) for configuration, upgrades, persistence, networking behavior, and limitations.
 
 ---
 
@@ -78,6 +98,7 @@ cd sub2api/deploy
 
 # Configure environment
 cp .env.example .env
+chmod 600 .env
 nano .env  # Set POSTGRES_PASSWORD and other required variables
 
 # Generate secure secrets (recommended)
@@ -176,7 +197,7 @@ Build the image in GitHub Actions:
 1. Push the code to GitHub.
 2. Open **Actions** -> **Server GHCR Image**.
 3. Run the workflow with:
-   - `image_tag`: a versioned tag such as `v0.1.139-sub2api`, or `sub2api-latest`
+   - `image_tag`: a versioned tag such as `sub2api-v0.1.160`, or `sub2api-latest`
    - `vite_base`: `/sub2api/`
    - `platforms`: `linux/arm64` for this server
 4. Wait until GHCR shows the image:
@@ -197,6 +218,11 @@ docker exec sub2api sh -lc \
 sha256sum "$backup_file" > "$backup_file.sha256"
 sha256sum -c "$backup_file.sha256"
 docker exec -i claude-code-hub-postgres-1 pg_restore -l < "$backup_file" | head -30
+
+# Keep only the latest two backup dumps and their checksum files.
+ls -1t "$backup_dir"/sub2api_*.dump 2>/dev/null | tail -n +3 | while read -r old_dump; do
+  rm -f "$old_dump" "$old_dump.sha256"
+done
 ```
 
 Upgrade by pulling the GHCR image and recreating only the Sub2API container:
@@ -205,7 +231,7 @@ Upgrade by pulling the GHCR image and recreating only the Sub2API container:
 cd /home/ubuntu/github/sub2api
 
 # Optional: pin a specific image tag in deploy/.env.
-# SUB2API_IMAGE=ghcr.io/narutoxm/sub2api-server:v0.1.139-sub2api
+# SUB2API_IMAGE=ghcr.io/narutoxm/sub2api-server:sub2api-v0.1.160
 
 docker compose -f deploy/docker-compose.external.yml --env-file deploy/.env pull sub2api
 docker compose -f deploy/docker-compose.external.yml --env-file deploy/.env up -d --no-deps sub2api
