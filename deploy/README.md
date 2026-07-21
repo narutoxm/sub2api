@@ -198,7 +198,7 @@ Build the image in GitHub Actions:
 1. Push the code to GitHub.
 2. Open **Actions** -> **Server GHCR Image**.
 3. Run the workflow with:
-   - `image_tag`: a versioned tag such as `sub2api-v0.1.161`, or `sub2api-latest`
+   - `image_tag`: a versioned tag such as `sub2api-v0.1.162`, or `sub2api-latest`
    - `vite_base`: `/sub2api/`
    - `platforms`: `linux/arm64` for this server
 4. Wait until GHCR shows the image:
@@ -238,7 +238,7 @@ Upgrade by pulling the GHCR image and recreating only the Sub2API container:
 cd /home/ubuntu/github/sub2api
 
 # Optional: pin a specific image tag in deploy/.env.
-# SUB2API_IMAGE=ghcr.io/narutoxm/sub2api-server:sub2api-v0.1.161
+# SUB2API_IMAGE=ghcr.io/narutoxm/sub2api-server:sub2api-v0.1.162
 
 docker compose -f deploy/docker-compose.external.yml --env-file deploy/.env pull sub2api
 docker compose -f deploy/docker-compose.external.yml --env-file deploy/.env up -d --no-deps sub2api
@@ -325,6 +325,7 @@ docker compose down -v
 | `ADMIN_EMAIL` | No | `admin@sub2api.local` | Admin email |
 | `ADMIN_PASSWORD` | No | *(auto-generated)* | Admin password |
 | `TZ` | No | `Asia/Shanghai` | Timezone |
+| `UPDATE_GITHUB_TOKEN` | No | *(empty)* | Token for `api.github.com` release checks only; asset downloads remain anonymous. |
 | `GEMINI_OAUTH_CLIENT_ID` | No | *(builtin)* | Google OAuth client ID (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
 | `GEMINI_OAUTH_CLIENT_SECRET` | No | *(builtin)* | Google OAuth client secret (Gemini OAuth). Leave empty to use the built-in Gemini CLI client. |
 | `GEMINI_OAUTH_SCOPES` | No | *(default)* | OAuth scopes (Gemini OAuth) |
