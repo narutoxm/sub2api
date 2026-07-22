@@ -198,7 +198,7 @@ Build the image in GitHub Actions:
 1. Push the code to GitHub.
 2. Open **Actions** -> **Server GHCR Image**.
 3. Run the workflow with:
-   - `image_tag`: a versioned tag such as `sub2api-v0.1.162`, or `sub2api-latest`
+   - `image_tag`: a versioned tag such as `sub2api-v0.1.163`, or `sub2api-latest`
    - `vite_base`: `/sub2api/`
    - `platforms`: `linux/arm64` for this server
 4. Wait until GHCR shows the image:
@@ -238,7 +238,7 @@ Upgrade by pulling the GHCR image and recreating only the Sub2API container:
 cd /home/ubuntu/github/sub2api
 
 # Optional: pin a specific image tag in deploy/.env.
-# SUB2API_IMAGE=ghcr.io/narutoxm/sub2api-server:sub2api-v0.1.162
+# SUB2API_IMAGE=ghcr.io/narutoxm/sub2api-server:sub2api-v0.1.163
 
 docker compose -f deploy/docker-compose.external.yml --env-file deploy/.env pull sub2api
 docker compose -f deploy/docker-compose.external.yml --env-file deploy/.env up -d --no-deps sub2api
