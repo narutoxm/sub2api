@@ -3,7 +3,7 @@ name: Server GHCR Image
 on:
   push:
     branches:
-      - upgrade/v0.1.163
+      - upgrade/v0.1.176
   workflow_dispatch:
     inputs:
       image_tag:
@@ -19,7 +19,7 @@ on:
       platforms:
         description: 'Target platforms'
         required: true
-        default: 'linux/arm64'
+        default: 'linux/amd64'
         type: string
 
 permissions:
@@ -51,9 +51,9 @@ jobs:
             echo "vite_base=${{ inputs.vite_base }}" >> "$GITHUB_OUTPUT"
             echo "platforms=${{ inputs.platforms }}" >> "$GITHUB_OUTPUT"
           else
-            echo "image_tag=sub2api-v0.1.163" >> "$GITHUB_OUTPUT"
+            echo "image_tag=sub2api-v0.1.176-amd64" >> "$GITHUB_OUTPUT"
             echo "vite_base=/sub2api/" >> "$GITHUB_OUTPUT"
-            echo "platforms=linux/arm64" >> "$GITHUB_OUTPUT"
+            echo "platforms=linux/amd64" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Login to GitHub Container Registry
@@ -72,7 +72,7 @@ jobs:
           push: true
           build-args: |
             VITE_BASE=${{ steps.build_inputs.outputs.vite_base }}
-            VERSION=0.1.163
+            VERSION=0.1.176
             COMMIT=${{ github.sha }}
           tags: |
             ghcr.io/${{ steps.owner.outputs.value }}/sub2api-server:${{ steps.build_inputs.outputs.image_tag }}

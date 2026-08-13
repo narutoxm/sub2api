@@ -42,8 +42,9 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import type { OAuthLoginStart } from '@/api/auth'
 import { resolveAffiliateReferralCode, storeOAuthAffiliateCode } from '@/utils/oauthAffiliate'
-import { getBasePath, resolveHTTPOrBasePath, withBasePath } from '@/utils/basePath'
+import { getBasePath, withBasePath } from '@/utils/basePath'
 
 const props = withDefaults(defineProps<{
   disabled?: boolean
@@ -52,6 +53,9 @@ const props = withDefaults(defineProps<{
 }>(), {
   showDivider: true
 })
+const emit = defineEmits<{
+  start: [request: OAuthLoginStart]
+}>()
 
 const route = useRoute()
 const { t } = useI18n()
@@ -64,9 +68,6 @@ function startLogin(): void {
     : withBasePath('dashboard')
 
   storeOAuthAffiliateCode(resolveAffiliateReferralCode(props.affCode, route.query.aff, route.query.aff_code))
-  const apiBase = resolveHTTPOrBasePath(import.meta.env.VITE_API_BASE_URL as string | undefined, 'api/v1')
-    .replace(/\/$/, '')
-  const startURL = `${apiBase}/auth/oauth/linuxdo/start?redirect=${encodeURIComponent(redirectTo)}`
-  window.location.href = startURL
+  emit('start', { provider: 'linuxdo', params: { redirect: redirectTo } })
 }
 </script>
