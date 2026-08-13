@@ -19,7 +19,7 @@ services:
     # be built with VITE_BASE=/sub2api/. Build it in GitHub Actions, not on the
     # shared server. See .github/workflows/server-ghcr.yml.
     image: ${SUB2API_IMAGE:-ghcr.io/narutoxm/sub2api-server:sub2api-latest}
-    pull_policy: always
+    pull_policy: missing
     container_name: sub2api
     restart: unless-stopped
     ulimits:
