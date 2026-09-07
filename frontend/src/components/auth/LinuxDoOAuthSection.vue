@@ -49,6 +49,7 @@ import { getBasePath, withBasePath } from '@/utils/basePath'
 const props = withDefaults(defineProps<{
   disabled?: boolean
   affCode?: string
+  promoCode?: string
   showDivider?: boolean
 }>(), {
   showDivider: true
@@ -68,6 +69,11 @@ function startLogin(): void {
     : withBasePath('dashboard')
 
   storeOAuthAffiliateCode(resolveAffiliateReferralCode(props.affCode, route.query.aff, route.query.aff_code))
-  emit('start', { provider: 'linuxdo', params: { redirect: redirectTo } })
+  const params: Record<string, string> = { redirect: redirectTo }
+  const promoCode = props.promoCode?.trim()
+  if (promoCode) {
+    params.promo_code = promoCode
+  }
+  emit('start', { provider: 'linuxdo', params })
 }
 </script>
