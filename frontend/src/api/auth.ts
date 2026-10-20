@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from './client'
+import { buildApiUrl } from './url'
 import { refreshAuthTokens, type RefreshTokenResponse } from './tokenRefresh'
 export type { RefreshTokenResponse } from './tokenRefresh'
 import type {
@@ -42,10 +43,8 @@ export interface OAuthLoginStartResponse {
 }
 
 export function buildOAuthLoginStartURL(request: OAuthLoginStart): string {
-  const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api/v1'
-  const normalized = apiBase.replace(/\/$/, '')
   const query = new URLSearchParams(request.params).toString()
-  const path = `${normalized}/auth/oauth/${request.provider}/start`
+  const path = buildApiUrl(`/auth/oauth/${request.provider}/start`)
   return query ? `${path}?${query}` : path
 }
 

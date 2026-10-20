@@ -13,7 +13,7 @@ import {
   shouldMarkUserUIRequest,
 } from './adminUIRequest'
 import { refreshAuthTokens } from './tokenRefresh'
-import { getAPIBaseURL } from './url'
+import { buildGatewayUrl, getAPIBaseURL } from './url'
 export { buildApiUrl, buildGatewayUrl } from './url'
 
 // ==================== Axios Instance Configuration ====================
@@ -131,8 +131,9 @@ apiClient.interceptors.response.use(
           // ignore event failures
         }
 
-        if (window.location.pathname.startsWith('/admin/ops')) {
-          window.location.href = '/admin/settings'
+        const adminOpsPath = buildGatewayUrl('/admin/ops').replace(window.location.origin, '')
+        if (window.location.pathname.startsWith(adminOpsPath)) {
+          window.location.href = buildGatewayUrl('/admin/settings')
         }
 
         return Promise.reject({
@@ -218,8 +219,9 @@ apiClient.interceptors.response.use(
             localStorage.removeItem('token_expires_at')
             sessionStorage.setItem('auth_expired', '1')
 
-            if (!window.location.pathname.includes('/login')) {
-              window.location.href = '/login'
+            const loginPath = buildGatewayUrl('/login').replace(window.location.origin, '')
+            if (!window.location.pathname.startsWith(loginPath)) {
+              window.location.href = buildGatewayUrl('/login')
             }
 
             return Promise.reject({
@@ -249,8 +251,9 @@ apiClient.interceptors.response.use(
           sessionStorage.setItem('auth_expired', '1')
         }
         // Only redirect if not already on login page
-        if (!window.location.pathname.includes('/login')) {
-          window.location.href = '/login'
+        const loginPath = buildGatewayUrl('/login').replace(window.location.origin, '')
+        if (!window.location.pathname.startsWith(loginPath)) {
+          window.location.href = buildGatewayUrl('/login')
         }
       }
 

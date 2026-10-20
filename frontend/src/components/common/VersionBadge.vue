@@ -650,6 +650,7 @@ import {
 } from '@/api/admin/system'
 import { useClipboard } from '@/composables/useClipboard'
 import Icon from '@/components/icons/Icon.vue'
+import { buildGatewayUrl } from '@/api/url'
 
 const GITHUB_REPO = 'Wei-Shaw/sub2api'
 // Docker Hub image published by CI (tags carry no "v" prefix, e.g. weishaw/sub2api:0.1.146)
@@ -879,7 +880,7 @@ async function checkServiceAndReload() {
 
   for (let i = 0; i < maxRetries; i++) {
     try {
-      const response = await fetch('/health', {
+      const response = await fetch(buildGatewayUrl('/health'), {
         method: 'GET',
         cache: 'no-cache'
       })

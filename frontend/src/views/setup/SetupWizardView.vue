@@ -506,6 +506,7 @@ import { buildGatewayUrl } from '@/api/client'
 import Select from '@/components/common/Select.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { withBasePath } from '@/utils/basePath'
 
 const { t } = useI18n()
 
@@ -667,7 +668,7 @@ async function waitForServiceRestart() {
           serviceReady.value = true
           // Redirect to login page after a short delay
           setTimeout(() => {
-            window.location.href = '/login'
+            window.location.href = withBasePath('login')
           }, 1500)
           return
         }
